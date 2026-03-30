@@ -72,6 +72,24 @@
     margin-top: 3px;
   }
 
+  .settings-btn {
+    margin-left: auto;
+    background: var(--primary-light);
+    color: var(--primary);
+    border: 1.5px solid #c5d0f8;
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+
+  .settings-btn:hover { background: var(--primary); color: white; }
+
   /* チャットエリア */
   .chat-wrapper {
     width: 100%;
@@ -315,10 +333,11 @@
     <div class="header-title">職場体験フォーム サポートBot</div>
     <div class="header-sub">操作ガイドについて何でも聞いてください（先生向け）</div>
   </div>
+  <button class="settings-btn" onclick="toggleApiSetup()">⚙️ APIキー設定</button>
 </div>
 
 <!-- APIキー設定エリア -->
-<div class="api-setup" id="apiSetup">
+<div class="api-setup" id="apiSetup" style="display:none;">
   <strong>⚙️ 初回設定：Gemini APIキーを入力してください</strong>
   <div class="api-row">
     <input class="api-input" type="password" id="apiKeyInput" placeholder="AIza..." />
@@ -450,9 +469,14 @@ Q：確認用URLを開いても「データが見つかりません」
 let apiKey = localStorage.getItem('gemini_api_key') || '';
 let history = []; // {role, parts:[{text}]}
 
-// APIキー設定済みなら非表示
-if (apiKey) {
-  document.getElementById('apiSetup').style.display = 'none';
+// APIキー設定済みなら非表示（初回は表示）
+if (!apiKey) {
+  document.getElementById('apiSetup').style.display = 'flex';
+}
+
+function toggleApiSetup() {
+  const el = document.getElementById('apiSetup');
+  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
 }
 
 function saveApiKey() {
@@ -461,6 +485,7 @@ function saveApiKey() {
   apiKey = val;
   localStorage.setItem('gemini_api_key', val);
   document.getElementById('apiSetup').style.display = 'none';
+  alert('✅ APIキーを保存しました！');
 }
 
 // ===== メッセージ追加 =====

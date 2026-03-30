@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>職場体験フォーム サポートBot</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f0f4ff;
+    --surface: #ffffff;
+    --primary: #3b5bdb;
+    --primary-light: #e7ecff;
+    --accent: #f03e3e;
+    --text: #1a1a2e;
+    --text-sub: #5c6b8a;
+    --bot-bubble: #ffffff;
+    --user-bubble: #3b5bdb;
+    --shadow: 0 4px 24px rgba(59,91,219,0.10);
+    --radius: 18px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+  }
+
+  /* ヘッダー */
+  .header {
+    width: 100%;
+    max-width: 680px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .header-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--primary);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
+  .header-title {
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  .header-sub {
+    font-size: 12px;
+    color: var(--text-sub);
+    margin-top: 3px;
+  }
+
+  /* チャットエリア */
+  .chat-wrapper {
+    width: 100%;
+    max-width: 680px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 180px);
+    min-height: 400px;
+    overflow: hidden;
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    scroll-behavior: smooth;
+  }
+
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: #d0d7f0; border-radius: 4px; }
+
+  /* メッセージ */
+  .msg {
+    display: flex;
+    gap: 10px;
+    animation: fadeIn 0.25s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg.user { flex-direction: row-reverse; }
+
+  .avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    align-self: flex-end;
+  }
+
+  .avatar.bot { background: var(--primary-light); }
+  .avatar.user-av { background: var(--user-bubble); }
+
+  .bubble {
+    max-width: 78%;
+    padding: 12px 16px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.75;
+    white-space: pre-wrap;
+  }
+
+  .msg.bot .bubble {
+    background: var(--bot-bubble);
+    border: 1.5px solid #e0e7ff;
+    color: var(--text);
+    border-bottom-left-radius: 4px;
+  }
+
+  .msg.user .bubble {
+    background: var(--user-bubble);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+
+  /* 入力エリア */
+  .input-area {
+    padding: 14px 16px;
+    border-top: 1.5px solid #e8edf8;
+    display: flex;
+    gap: 10px;
+    background: var(--surface);
+  }
+
+  .input-area textarea {
+    flex: 1;
+    border: 1.5px solid #d0d9f0;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: 'Noto Sans JP', sans-serif;
+    color: var(--text);
+    resize: none;
+    outline: none;
+    line-height: 1.6;
+    transition: border-color 0.2s;
+    max-height: 120px;
+    background: #f8f9ff;
+  }
+
+  .input-area textarea:focus { border-color: var(--primary); background: #fff; }
+  .input-area textarea::placeholder { color: #aab2cc; }
+
+  .send-btn {
+    width: 44px;
+    height: 44px;
+    background: var(--primary);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s, transform 0.1s;
+    flex-shrink: 0;
+    align-self: flex-end;
+  }
+
+  .send-btn:hover:not(:disabled) { opacity: 0.85; transform: scale(1.05); }
+  .send-btn:disabled { opacity: 0.4; cursor: default; }
+
+  /* ローディング */
+  .typing {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    padding: 4px 0;
+  }
+
+  .typing span {
+    width: 7px;
+    height: 7px;
+    background: #a0aecf;
+    border-radius: 50%;
+    animation: bounce 1.2s ease infinite;
+  }
+
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+  }
+
+  /* クイック質問ボタン */
+  .quick-wrap {
+    padding: 0 16px 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .quick-btn {
+    background: var(--primary-light);
+    color: var(--primary);
+    border: 1.5px solid #c5d0f8;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+
+  .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
+  /* APIキー設定 */
+  .api-setup {
+    width: 100%;
+    max-width: 680px;
+    background: #fff8e1;
+    border: 1.5px solid #ffe082;
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: #5d4037;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .api-setup strong { font-weight: 700; }
+
+  .api-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .api-input {
+    flex: 1;
+    border: 1.5px solid #ffca28;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-family: 'Noto Sans JP', sans-serif;
+    outline: none;
+    background: #fff;
+  }
+
+  .api-input:focus { border-color: #ff8f00; }
+
+  .api-save-btn {
+    background: #f9a825;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .api-save-btn:hover { background: #f57f17; }
+
+  .api-note { font-size: 11px; color: #8d6e63; }
+
+  @media (max-width: 500px) {
+    body { padding: 8px; }
+    .bubble { max-width: 88%; font-size: 13px; }
+    .header { padding: 14px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">📋</div>
+  <div>
+    <div class="header-title">職場体験フォーム サポートBot</div>
+    <div class="header-sub">操作ガイドについて何でも聞いてください（先生向け）</div>
+  </div>
+</div>
+
+<!-- APIキー設定エリア -->
+<div class="api-setup" id="apiSetup">
+  <strong>⚙️ 初回設定：Gemini APIキーを入力してください</strong>
+  <div class="api-row">
+    <input class="api-input" type="password" id="apiKeyInput" placeholder="AIza..." />
+    <button class="api-save-btn" onclick="saveApiKey()">保存</button>
+  </div>
+  <div class="api-note">
+    APIキーは <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a> から無料で取得できます。<br>
+    入力したキーはこのブラウザにのみ保存され、外部には送信されません。
+  </div>
+</div>
+
+<div class="chat-wrapper">
+  <div class="messages" id="messages">
+    <div class="msg bot">
+      <div class="avatar bot">🤖</div>
+      <div class="bubble">こんにちは！職場体験フォームのサポートBotです。<br>操作ガイドの内容について、なんでもお気軽に質問してください😊<br><br>例：「Slackに通知が来ない」「体験先リストを追加したい」など</div>
+    </div>
+  </div>
+
+  <div class="quick-wrap" id="quickWrap">
+    <button class="quick-btn" onclick="quickSend('生徒のフォーム操作の流れを教えて')">📱 生徒の操作手順</button>
+    <button class="quick-btn" onclick="quickSend('Slackに通知が来ないときはどうすれば？')">🔔 Slack通知が来ない</button>
+    <button class="quick-btn" onclick="quickSend('体験先リストを追加・変更したい')">📝 体験先リストの変更</button>
+    <button class="quick-btn" onclick="quickSend('生徒が提出した内容を変更したい')">✏️ 提出内容の変更</button>
+    <button class="quick-btn" onclick="quickSend('スプレッドシートの列の意味を教えて')">📊 スプレッドシートの見かた</button>
+  </div>
+
+  <div class="input-area">
+    <textarea id="userInput" rows="1" placeholder="質問を入力してください…"
+      onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+    <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+  </div>
+</div>
+
+<script>
+// ===== マニュアル内容（system prompt） =====
+const MANUAL = `
+あなたは「職場体験 希望入力フォーム」の操作ガイドに関するサポートBotです。
+先生からの質問に、このマニュアルの内容をもとに、丁寧でわかりやすく答えてください。
+マニュアルに載っていない内容は「マニュアルに記載がないため、システム担当の先生にご確認ください」と答えてください。
+回答は箇条書きや番号リストを使って整理し、簡潔にまとめてください。
+
+---
+【マニュアル内容】
+
+■ 生徒のフォーム操作の流れ（4ステップ）
+1. 基本情報を入力する
+   - 名前、学年、クラス、出席番号を入力
+   - サポート教室を利用しているかも選択
+   - ※学年を選ぶとクラスの選択肢が自動で出る
+
+2. 希望の種類を選ぶ（3択）
+   ① リストから選びたい → 第1〜第3希望の選択欄が出る（第1は必須）
+   ② リストにないので自分で探したい → 行きたい業種や体験先を書く欄が出る
+   ③ まだ迷いたい → そのまま送信できる
+
+3. 確認して送信する
+   - 「送信内容を確認」ボタンで内容一覧が出る
+   - 間違いがあれば「戻る」で修正
+   - OKなら「この内容で送信する」を押す
+
+4. スクリーンショットを撮る
+   - 送信完了後、赤い文字で案内が出る
+   - 生徒にスクリーンショットを撮るよう必ず指導すること
+
+■ 便利な情報
+- 確認用URL：送信後、その生徒専用のURLが自動作成される。SlackとスプレッドシートのM列に記録される
+- 確認用URLからは内容の変更はできない（先生がスプレッドシートで直接修正）
+- 同じ体験先を複数希望には入れられない（第1希望で選んだものは第2・第3から自動除外）
+
+■ 提出データの確認方法
+【Slackで確認】
+- 提出があるとすぐにSlack通知が届く
+- 通知内容：学年・クラス・出席番号・名前・希望先・サポート利用有無・先生用/生徒用リンク
+
+【通知チャンネルの種類】
+- 共通チャンネル（進路室）：すべての提出
+- クラス別チャンネル：そのクラスの生徒が提出したとき
+- 支援チャンネル：サポート教室利用「はい」の生徒、または支援クラスの生徒
+
+【スプレッドシートで確認】
+- 全体ログシート：全生徒のデータ
+  - A列：提出日時、B列：名前、D列：学年、E列：クラス、F列：出席番号
+  - G列：希望の種類、H〜J列：第1〜第3希望、K列：自由記述
+  - L列：サポート教室利用、M列：生徒用確認URL
+- クラス別シート：最初の提出時に自動作成（例：2A、3B、支援）
+
+■ 体験先リストの追加・変更のしかた（4ステップ）
+1. スプレッドシートを開く
+2. 「体験先リスト」シートを開く
+3. A列に体験先を1行ずつ入力（例：A1：○○病院、A2：△△動物病院）
+4. 保存するだけでOK（フォームの再設定不要）
+- リストの並び順＝フォームの選択肢の順番（五十音順推奨）
+- ⚠️ 名前を後から変えても、変更前の提出データは古い名前のまま残る
+
+■ よくあるトラブルQ&A
+Q：生徒が「画面が開かない」
+→ インターネット接続を確認 → URLの入力ミスを確認 → それでもダメならシステム担当の先生に連絡
+
+Q：体験先の選択肢が何も表示されない
+→ スプレッドシートの「体験先リスト」シートのA列に体験先が入力されているか確認 → 空なら入力する
+
+Q：Slackに通知が来ない
+→ スプレッドシートにデータが入っているか確認 → データがあれば送信は成功 → Slack設定の問題なのでシステム担当の先生に連絡
+
+Q：生徒が提出した内容を変更したい
+→ フォームの確認画面からは変更不可 → 先生がスプレッドシートの「全体ログ」で該当セルを直接修正 → または再送信（その場合は古いデータ行を先生が削除）
+
+Q：「エラーが発生しました」と出た
+→ 大勢が同時送信すると一時的にエラーが出ることがある → 1〜2分待ってから再送信 → 何度もエラーが出る場合はシステム担当の先生に連絡
+
+Q：確認用URLを開いても「データが見つかりません」
+→ スプレッドシートのデータが削除された可能性あり → 「全体ログ」でデータが残っているか確認
+
+■ 先生自身でできること
+- 体験先を追加・変更・削除：スプレッドシートの「体験先リスト」シートを直接編集
+- 提出済みデータを修正：スプレッドシートの「全体ログ」シートで該当セルを直接書き換え
+- 特定のデータを削除：「全体ログ」とクラス別シートの両方から該当行を削除
+
+■ システム担当の先生に相談すること
+- 出席番号の最大値を変えたい → プログラムの設定変更が必要
+- クラスの選択肢を変えたい（例：Gクラスを追加） → フォーム画面の設定変更が必要
+- Slackの通知先を変えたい → プログラムの連携設定変更が必要
+- フォームのURLを再発行したい → プログラムの再デプロイが必要
+- ⚠️ プログラムの設定変更を間違えるとフォームが動かなくなるおそれがあるため、必ずシステム担当の先生に相談
+`;
+
+// ===== 状態管理 =====
+let apiKey = localStorage.getItem('gemini_api_key') || '';
+let history = []; // {role, parts:[{text}]}
+
+// APIキー設定済みなら非表示
+if (apiKey) {
+  document.getElementById('apiSetup').style.display = 'none';
+}
+
+function saveApiKey() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  if (!val) return alert('APIキーを入力してください');
+  apiKey = val;
+  localStorage.setItem('gemini_api_key', val);
+  document.getElementById('apiSetup').style.display = 'none';
+}
+
+// ===== メッセージ追加 =====
+function addMsg(role, text) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+
+  const av = document.createElement('div');
+  av.className = `avatar ${role === 'bot' ? 'bot' : 'user-av'}`;
+  av.textContent = role === 'bot' ? '🤖' : '👤';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = text;
+
+  div.appendChild(av);
+  div.appendChild(bubble);
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return bubble;
+}
+
+function showTyping() {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg bot';
+  div.id = 'typingIndicator';
+
+  const av = document.createElement('div');
+  av.className = 'avatar bot';
+  av.textContent = '🤖';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+
+  div.appendChild(av);
+  div.appendChild(bubble);
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function removeTyping() {
+  const el = document.getElementById('typingIndicator');
+  if (el) el.remove();
+}
+
+// ===== Gemini API呼び出し =====
+async function callGemini(userText) {
+  if (!apiKey) {
+    document.getElementById('apiSetup').style.display = 'flex';
+    return 'APIキーが設定されていません。上の黄色いエリアでAPIキーを入力してください。';
+  }
+
+  history.push({ role: 'user', parts: [{ text: userText }] });
+
+  const body = {
+    system_instruction: { parts: [{ text: MANUAL }] },
+    contents: history
+  };
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      }
+    );
+
+    if (!res.ok) {
+      const err = await res.json();
+      if (res.status === 400 && err.error?.message?.includes('API_KEY')) {
+        return 'APIキーが無効です。正しいキーを再入力してください。';
+      }
+      if (res.status === 429) {
+        return '無料枠の上限に達しました。少し時間をおいてから再度お試しください。';
+      }
+      return `エラーが発生しました（${res.status}）。しばらく待ってから再試行してください。`;
+    }
+
+    const data = await res.json();
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '応答を取得できませんでした。';
+    history.push({ role: 'model', parts: [{ text: reply }] });
+    return reply;
+
+  } catch (e) {
+    return 'ネットワークエラーが発生しました。インターネット接続を確認してください。';
+  }
+}
+
+// ===== 送信処理 =====
+async function sendMessage() {
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  // クイックボタン非表示
+  document.getElementById('quickWrap').style.display = 'none';
+
+  input.value = '';
+  autoResize(input);
+  document.getElementById('sendBtn').disabled = true;
+
+  addMsg('user', text);
+  showTyping();
+
+  const reply = await callGemini(text);
+  removeTyping();
+  addMsg('bot', reply);
+
+  document.getElementById('sendBtn').disabled = false;
+  input.focus();
+}
+
+function quickSend(text) {
+  document.getElementById('userInput').value = text;
+  sendMessage();
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+</script>
+</body>
+</html>
